@@ -1,0 +1,67 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                    ARTIST STUDIO PRO - QUICK START                            ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+FASTEST PATH TO APP STORES (Do This First)
+══════════════════════════════════════════
+
+STEP 1: Host Your App (10 minutes)
+──────────────────────────────────
+□ Go to github.com and sign up (free)
+□ Create new repository named: artist-studio-pro
+□ Upload these files: index.html, manifest.json, sw.js, icons folder
+□ Go to Settings → Pages → Select "main" branch → Save
+□ Wait 2 minutes, then visit: https://YOUR-USERNAME.github.io/artist-studio-pro/
+□ Test it on your phone!
+
+
+STEP 2: Google Play Store (Easiest - $25 one-time)
+──────────────────────────────────────────────────
+□ Go to pwabuilder.com
+□ Enter your GitHub Pages URL
+□ Click "Package for Stores" → Android
+□ Download the .aab file
+□ Create Google Play Developer account ($25)
+□ Upload your app and fill out the listing
+□ Submit for review (3-7 days)
+
+
+STEP 3: Apple App Store (Requires Mac - $99/year)
+─────────────────────────────────────────────────
+□ Install Xcode on your Mac
+□ Install Node.js and Capacitor
+□ Follow the detailed steps in APP_STORE_DEPLOYMENT.md
+□ Create Apple Developer account ($99/year)
+□ Build and upload through Xcode
+□ Submit for review (1-7 days)
+
+
+INCLUDED FILES
+══════════════
+• index.html      - The complete app
+• manifest.json   - PWA configuration
+• sw.js           - Service worker for offline support
+• icons/          - App icons (8 sizes)
+• README.txt      - Instructions for your customers
+• SELLING_GUIDE.md - How to sell on Gumroad (optional)
+• APP_STORE_DEPLOYMENT.md - Detailed deployment guide
+• QUICK_START.txt - This file
+
+
+COSTS SUMMARY
+═════════════
+GitHub Pages hosting ............ FREE
+PWABuilder tool ................. FREE
+Google Play (one-time) .......... $25
+Apple Developer (per year) ...... $99
+────────────────────────────────────
+Total to launch on BOTH stores .. $124
+
+
+NEED THE FULL GUIDE?
+════════════════════
+Read APP_STORE_DEPLOYMENT.md for complete step-by-step instructions
+with screenshots, descriptions, and tips for success.
+
+
+Good luck! 🎨
