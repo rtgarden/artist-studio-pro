@@ -60,17 +60,17 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 // ARTIST STUDIO PRO - Commercial Edition
 // Version 1.0.0
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const { useState, useEffect, useRef, useCallback } = React;
 const APP_VERSION = '1.0.0';
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 // STORAGE & UTILITIES
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const storage = {
   get: (key, defaultValue) => {
@@ -92,9 +92,30 @@ const storage = {
 
 const formatDate = (date) => new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Calculate total storage used by the app
+const getStorageUsage = () => {
+  let total = 0;
+  for (let key in localStorage) {
+    if (key.startsWith('artiststudio_')) {
+      total += (localStorage.getItem(key)?.length || 0) * 2; // UTF-16 = 2 bytes per char
+    }
+  }
+  if (total < 1024) return `${total} B`;
+  if (total < 1024 * 1024) return `${(total / 1024).toFixed(1)} KB`;
+  return `${(total / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+// Get platform-specific storage path hint
+const getStoragePath = () => {
+  const platform = navigator.platform || '';
+  if (platform.includes('Mac')) return '~/Library/Application Support/[Browser]/Local Storage/';
+  if (platform.includes('Win')) return 'AppData\\Local\\[Browser]\\User Data\\Default\\Local Storage\\';
+  return '~/.config/[browser]/Local Storage/';
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ICONS
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const Icons = {
   Logo: ({ className = "w-8 h-8" }) => (
@@ -136,11 +157,17 @@ const Icons = {
   ChevronRight: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>,
   Heart: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
   Shield: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
+  Collection: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
+  Print: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>,
+  Document: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+  FolderOpen: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" /></svg>,
+  HardDrive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" /></svg>,
+  Usb: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18v-3m0-3V9m0 0V6a1 1 0 00-1-1H9a1 1 0 00-1 1v3h4zm0 0h4V6a1 1 0 00-1-1h-2a1 1 0 00-1 1v3zm-4 3a2 2 0 104 0 2 2 0 00-4 0z" /></svg>,
 };
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTS
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const Toast = ({ message, show }) => (
   <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 gradient-brand text-white px-6 py-3 rounded-xl shadow-2xl transition-all duration-300 z-50 flex items-center gap-2 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
@@ -155,56 +182,131 @@ const OnlineIndicator = ({ isOnline }) => (
   </div>
 );
 
-const ImageUpload = ({ image, onChange, onRemove, compact }) => {
+// Helper to resize an image to a max dimension
+const resizeImage = (img, maxSize, quality = 0.85) => {
+  const canvas = document.createElement('canvas');
+  let { width, height } = img;
+  if (width > maxSize || height > maxSize) {
+    if (width > height) { height = (height / width) * maxSize; width = maxSize; }
+    else { width = (width / height) * maxSize; height = maxSize; }
+  }
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', quality);
+};
+
+// Get the display image (supports both old format and new {image, thumbnail} format)
+const getDisplayImage = (imageData, useThumbnail = true) => {
+  if (!imageData) return null;
+  if (typeof imageData === 'string') return imageData; // old format
+  return useThumbnail ? (imageData.thumbnail || imageData.image) : imageData.image;
+};
+
+// Helper to estimate base64 image size
+const estimateImageSize = (base64String) => {
+  if (!base64String) return 0;
+  const str = typeof base64String === 'string' ? base64String : base64String.image || '';
+  const base64Length = str.length - (str.indexOf(',') + 1);
+  const sizeInBytes = (base64Length * 3) / 4;
+  if (sizeInBytes < 1024) return `${Math.round(sizeInBytes)} B`;
+  if (sizeInBytes < 1024 * 1024) return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+  return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+// Storage path info component
+const StoragePathInfo = ({ size, showPath = true }) => (
+  <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-100">
+    <div className="flex items-center gap-2 text-xs text-gray-500">
+      <Icons.Database />
+      <span>Stored in browser localStorage</span>
+      {size && <span className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">{size}</span>}
+    </div>
+    {showPath && (
+      <p className="text-xs text-gray-400 mt-1 font-mono truncate" title="Browser storage location varies by platform">
+        📁 {navigator.platform?.includes('Mac') ? '~/Library/Application Support/[Browser]/Local Storage/' :
+            navigator.platform?.includes('Win') ? 'AppData\\Local\\[Browser]\\User Data\\Default\\Local Storage\\' :
+            '~/.config/[browser]/Local Storage/'}
+      </p>
+    )}
+  </div>
+);
+
+const ImageUpload = ({ image, onChange, onRemove, compact, showStorageInfo = true }) => {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleFile = (file) => {
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const maxSize = 800;
-          let { width, height } = img;
-          if (width > maxSize || height > maxSize) {
-            if (width > height) { height = (height / width) * maxSize; width = maxSize; }
-            else { width = (width / height) * maxSize; height = maxSize; }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          onChange(canvas.toDataURL('image/jpeg', 0.7));
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    // Check MIME type or fall back to file extension
+    const isImage = file.type.startsWith('image/') ||
+      /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|heif)$/i.test(file.name);
+
+    if (!isImage) {
+      alert('Please select an image file (JPG, PNG, GIF, WebP, etc.)');
+      return;
     }
+
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Create full-size image (max 2000px, high quality)
+        const fullImage = resizeImage(img, 2000, 0.9);
+        // Create thumbnail (max 400px, medium quality for fast loading)
+        const thumbnail = resizeImage(img, 400, 0.8);
+        // Store both versions
+        onChange({ image: fullImage, thumbnail: thumbnail });
+        setLoading(false);
+      };
+      img.onerror = () => {
+        alert('Could not load this image. Please try a different file.');
+        setLoading(false);
+      };
+      img.src = e.target.result;
+    };
+    reader.onerror = () => {
+      alert('Could not read this file. Please try again.');
+      setLoading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
+  const displayImage = getDisplayImage(image);
+  const imageSize = displayImage ? estimateImageSize(image) : null;
+
   return (
-    <div
-      className={`relative border-2 border-dashed rounded-xl text-center cursor-pointer transition-all ${dragOver ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300'} ${image ? 'border-solid border-brand-400' : ''} ${compact ? 'p-2' : 'p-6'}`}
-      onClick={() => !image && inputRef.current?.click()}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]); }}
-    >
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
-      {image ? (
-        <div className="relative">
-          <img src={image} alt="Preview" className={`mx-auto rounded-lg object-cover ${compact ? 'max-h-20' : 'max-h-48'}`} />
-          <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-lg">
-            <Icons.X />
-          </button>
-        </div>
-      ) : (
-        <div className="text-gray-400">
-          {!compact && <div className="mb-2"><Icons.Image /></div>}
-          <p className={`font-medium text-gray-500 ${compact ? 'text-xs' : 'text-sm'}`}>+ Add Image</p>
-        </div>
-      )}
+    <div>
+      <div
+        className={`relative border-2 border-dashed rounded-xl text-center cursor-pointer transition-all ${dragOver ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300'} ${displayImage ? 'border-solid border-brand-400' : ''} ${compact ? 'p-2' : 'p-6'}`}
+        onClick={() => !displayImage && !loading && inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]); }}
+      >
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { handleFile(e.target.files[0]); e.target.value = ''; }} />
+        {loading ? (
+          <div className="text-gray-400 py-4">
+            <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            <p className="text-sm">Processing image...</p>
+          </div>
+        ) : displayImage ? (
+          <div className="relative">
+            <img src={displayImage} alt="Preview" className={`mx-auto rounded-lg object-cover ${compact ? 'max-h-20' : 'max-h-48'}`} />
+            <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-lg" title="Remove image">
+              <Icons.X />
+            </button>
+          </div>
+        ) : (
+          <div className="text-gray-400">
+            {!compact && <div className="mb-2"><Icons.Image /></div>}
+            <p className={`font-medium text-gray-500 ${compact ? 'text-xs' : 'text-sm'}`}>+ Add Image</p>
+          </div>
+        )}
+      </div>
+      {displayImage && showStorageInfo && !compact && <StoragePathInfo size={imageSize} showPath={false} />}
     </div>
   );
 };
@@ -253,9 +355,9 @@ const LinkPicker = ({ items, selectedIds, onChange, itemType, label }) => {
   );
 };
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 // WELCOME SCREEN
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const WelcomeScreen = ({ onComplete }) => {
   const [step, setStep] = useState(0);
@@ -290,7 +392,6 @@ const WelcomeScreen = ({ onComplete }) => {
         <div className="space-y-3">
           {[
             { icon: Icons.Palette, color: 'bg-violet-100 text-violet-600', name: 'Artworks', desc: 'Paintings, sculptures, and creations' },
-            { icon: Icons.Layers, color: 'bg-cyan-100 text-cyan-600', name: 'Series', desc: 'Group related artworks into bodies of work with themes, timelines, and descriptions' },
             { icon: Icons.Book, color: 'bg-emerald-100 text-emerald-600', name: 'Books', desc: 'Reference library and inspiration' },
             { icon: Icons.Box, color: 'bg-amber-100 text-amber-600', name: 'Supplies', desc: 'Materials with stock tracking' },
             { icon: Icons.Hanger, color: 'bg-rose-100 text-rose-600', name: 'Costumes & Props', desc: 'Period pieces and reference items' },
@@ -357,9 +458,9 @@ const WelcomeScreen = ({ onComplete }) => {
   );
 };
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 // HELP MODAL
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const HelpModal = ({ onClose }) => {
   const [section, setSection] = useState('getting-started');
@@ -385,6 +486,7 @@ const HelpModal = ({ onClose }) => {
         <div className="space-y-3">
           {[
             { name: 'Artworks', desc: 'Track paintings, sculptures, and creations with dimensions, medium, status, and series' },
+            { name: 'Series', desc: 'Group related artworks into bodies of work with themes, timelines, and descriptions' },
             { name: 'Books', desc: 'Manage your reference library with ratings, categories, and reading status' },
             { name: 'Supplies', desc: 'Monitor art materials with stock levels and automatic reorder alerts' },
             { name: 'Costumes & Props', desc: 'Catalog reference pieces with era, condition, and materials' },
@@ -405,9 +507,9 @@ const HelpModal = ({ onClose }) => {
         <div className="space-y-4">
           <p>Link items together to understand your creative process:</p>
           <ul className="space-y-2 text-gray-600">
-            <li>â¢ <strong>Artworks</strong> can reference books that influenced them, supplies used, and props featured</li>
-            <li>â¢ <strong>Characters</strong> can be linked to their costumes and reference books</li>
-            <li>â¢ <strong>Supplies</strong> can track which vendor they came from</li>
+            <li>• <strong>Artworks</strong> can reference books that influenced them, supplies used, and props featured</li>
+            <li>• <strong>Characters</strong> can be linked to their costumes and reference books</li>
+            <li>• <strong>Supplies</strong> can track which vendor they came from</li>
           </ul>
           <p className="text-sm text-gray-500">These connections appear automatically when viewing any item's details.</p>
         </div>
@@ -418,17 +520,35 @@ const HelpModal = ({ onClose }) => {
       content: (
         <div className="space-y-4">
           <p>Your data is stored locally on this device. We recommend regular backups:</p>
+
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="font-medium text-blue-800 mb-2 flex items-center gap-2"><Icons.Database /> Storage Location</p>
+            <p className="text-sm text-blue-700 mb-2">All your inventory data and images are stored in your browser's localStorage:</p>
+            <p className="text-xs font-mono text-blue-600 bg-blue-100 p-2 rounded break-all">
+              {navigator.platform?.includes('Mac') ? '~/Library/Application Support/[Browser]/Local Storage/' :
+               navigator.platform?.includes('Win') ? 'C:\\Users\\[You]\\AppData\\Local\\[Browser]\\User Data\\Default\\Local Storage\\' :
+               '~/.config/[browser]/Local Storage/'}
+            </p>
+          </div>
+
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="font-medium text-amber-800 mb-2">Important</p>
-            <p className="text-sm text-amber-700">If you clear your browser data, your inventory will be lost. Always keep a backup!</p>
+            <p className="font-medium text-amber-800 mb-2">⚠️ Important</p>
+            <p className="text-sm text-amber-700">If you clear your browser data, your inventory will be lost. Always keep a backup on an external drive!</p>
           </div>
+
           <div className="space-y-2">
-            <p className="font-medium">To backup:</p>
-            <p className="text-gray-600">Click "Export" in the header to download a JSON file with all your data.</p>
+            <p className="font-medium flex items-center gap-2"><Icons.HardDrive /> Backup to External Drive</p>
+            <p className="text-gray-600 text-sm">Click "Backup to Folder" to save directly to a thumb drive or external hard drive. This uses your system's file picker so you can choose exactly where to save.</p>
           </div>
+
           <div className="space-y-2">
-            <p className="font-medium">To restore:</p>
-            <p className="text-gray-600">Click "Import" and select a previously exported backup file.</p>
+            <p className="font-medium flex items-center gap-2"><Icons.Download /> Quick Export</p>
+            <p className="text-gray-600 text-sm">Click "Export" to download a backup file to your default Downloads folder.</p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-medium flex items-center gap-2"><Icons.Upload /> Restore from Backup</p>
+            <p className="text-gray-600 text-sm">Click "Import" and select any previously exported backup file (.json).</p>
           </div>
         </div>
       )
@@ -441,11 +561,11 @@ const HelpModal = ({ onClose }) => {
           <div className="space-y-3">
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900">iPhone/iPad</p>
-              <p className="text-sm text-gray-600">Tap the Share button â "Add to Home Screen"</p>
+              <p className="text-sm text-gray-600">Tap the Share button → "Add to Home Screen"</p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900">Android</p>
-              <p className="text-sm text-gray-600">Tap the menu (â®) â "Add to Home screen"</p>
+              <p className="text-sm text-gray-600">Tap the menu (⋮) → "Add to Home screen"</p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900">Desktop (Chrome/Edge)</p>
@@ -489,7 +609,7 @@ const HelpModal = ({ onClose }) => {
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-xl font-bold text-gray-900">{sections[section].title}</h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><Icons.X /></button>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" title="Close help"><Icons.X /></button>
           </div>
           <div className="text-gray-700">{sections[section].content}</div>
         </div>
@@ -498,9 +618,9 @@ const HelpModal = ({ onClose }) => {
   );
 };
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const LOCATIONS = ['Studio', 'Storage', 'Office', 'On Loan', 'Gallery', 'Sold', 'Gifted'];
 const ARTWORK_STATUS = ['In Progress', 'Completed', 'For Sale', 'Sold', 'Not for Sale'];
@@ -522,17 +642,18 @@ const typeConfig = {
   costume: { color: 'rose', bgLight: 'bg-rose-50', bgMedium: 'bg-rose-100', text: 'text-rose-700', bgDark: 'bg-rose-600', Icon: Icons.Hanger },
   character: { color: 'fuchsia', bgLight: 'bg-fuchsia-50', bgMedium: 'bg-fuchsia-100', text: 'text-fuchsia-700', bgDark: 'bg-fuchsia-600', Icon: Icons.Mask },
   source: { color: 'blue', bgLight: 'bg-blue-50', bgMedium: 'bg-blue-100', text: 'text-blue-700', bgDark: 'bg-blue-600', Icon: Icons.Store },
+  series: { color: 'cyan', bgLight: 'bg-cyan-50', bgMedium: 'bg-cyan-100', text: 'text-cyan-700', bgDark: 'bg-cyan-600', Icon: Icons.Collection },
 };
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORMS (Abbreviated for length - full versions in production)
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const ArtworkForm = ({ item, items, onSave, onCancel }) => {
   const [form, setForm] = useState(item || {
     id: Date.now(), type: 'artwork', invNumber: '', title: '', dateCompleted: '',
     medium: '', height: '', width: '', depth: '', units: 'in',
-    location: 'Studio', series: '', status: 'Completed',
+    location: 'Studio', seriesIds: [], status: 'Completed',
     influencedBy: [], suppliesUsed: [], costumesUsed: [], notes: '', image: null
   });
   const update = (f, v) => setForm(p => ({ ...p, [f]: v }));
@@ -563,7 +684,7 @@ const ArtworkForm = ({ item, items, onSave, onCancel }) => {
             <select value={form.location} onChange={(e) => update('location', e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">{LOCATIONS.map(l => <option key={l}>{l}</option>)}</select>
             <select value={form.status} onChange={(e) => update('status', e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">{ARTWORK_STATUS.map(s => <option key={s}>{s}</option>)}</select>
           </div>
-          <input type="text" value={form.series} onChange={(e) => update('series', e.target.value)} placeholder="Series / Body of Work" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <LinkPicker items={items} selectedIds={form.seriesIds || []} onChange={(ids) => update('seriesIds', ids)} itemType="series" label="Part of series" />
         </div>
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
           <h3 className="text-sm font-semibold text-gray-700">Connections</h3>
@@ -611,7 +732,7 @@ const BookForm = ({ item, items, onSave, onCancel }) => {
           <select value={form.location} onChange={(e) => update('location', e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">{LOCATIONS.map(l => <option key={l}>{l}</option>)}</select>
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500 mr-2">Rating:</span>
-            {[1,2,3,4,5].map(n => (<button key={n} type="button" onClick={() => update('rating', form.rating === n ? 0 : n)} className={form.rating >= n ? 'text-yellow-400' : 'text-gray-300'}><Icons.Star /></button>))}
+            {[1,2,3,4,5].map(n => (<button key={n} type="button" onClick={() => update('rating', form.rating === n ? 0 : n)} className={form.rating >= n ? 'text-yellow-400' : 'text-gray-300'} title={`${n} star${n > 1 ? 's' : ''} — click again to clear`}><Icons.Star /></button>))}
           </div>
         </div>
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
@@ -800,23 +921,689 @@ const CharacterForm = ({ item, items, onSave, onCancel }) => {
   );
 };
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// DETAIL VIEW
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const SeriesForm = ({ item, items, onSave, onCancel }) => {
+  const [form, setForm] = useState(item || { id: Date.now(), type: 'series', name: '', description: '', startDate: '', endDate: '', status: 'In Progress', theme: '', medium: '', artworks: [], notes: '', image: null });
+  const update = (f, v) => setForm(p => ({ ...p, [f]: v }));
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); if (!form.name.trim()) return alert('Name required'); onSave(form); }} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl p-4 shadow-sm"><ImageUpload image={form.image} onChange={(img) => update('image', img)} onRemove={() => update('image', null)} /></div>
+        <div className="md:col-span-2 bg-white rounded-2xl p-4 shadow-sm space-y-3">
+          <input type="text" value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="Series Name *" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg focus:ring-2 focus:ring-cyan-500" required />
+          <textarea value={form.description} onChange={(e) => update('description', e.target.value)} placeholder="Description of this body of work..." rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none" />
+          <div className="grid grid-cols-2 gap-3">
+            <input type="text" value={form.theme} onChange={(e) => update('theme', e.target.value)} placeholder="Theme / Concept" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+            <input type="text" value={form.medium} onChange={(e) => update('medium', e.target.value)} placeholder="Primary Medium" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700">Timeline & Status</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Started</label>
+              <input type="month" value={form.startDate} onChange={(e) => update('startDate', e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Completed</label>
+              <input type="month" value={form.endDate} onChange={(e) => update('endDate', e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+            </div>
+          </div>
+          <select value={form.status} onChange={(e) => update('status', e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">{['In Progress', 'Completed', 'On Hold', 'Archived'].map(s => <option key={s}>{s}</option>)}</select>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700">Artworks in Series</h3>
+          <LinkPicker items={items} selectedIds={form.artworks || []} onChange={(ids) => update('artworks', ids)} itemType="artwork" label="Select artworks" />
+        </div>
+      </div>
+      <div className="bg-white rounded-2xl p-4 shadow-sm"><textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Notes about this series..." rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none" /></div>
+      <div className="flex gap-3 justify-end">
+        <button type="button" onClick={onCancel} className="px-6 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">Cancel</button>
+        <button type="submit" className="px-6 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 flex items-center gap-2"><Icons.Check /> Save Series</button>
+      </div>
+    </form>
+  );
+};
 
-const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem }) => {
+// ═══════════════════════════════════════════════════════════════════════════════
+// ARTWORK CARD (Printable catalog card)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ArtworkCard = ({ item, items, onClose }) => {
+  const getLinked = (ids, type) => items.filter(i => ids?.includes(i.id) && i.type === type);
+
+  // Get all connections for this artwork
+  const seriesList = [...getLinked(item.seriesIds, 'series'), ...items.filter(i => i.type === 'series' && i.artworks?.includes(item.id))];
+  const books = getLinked(item.influencedBy, 'book');
+  const supplies = getLinked(item.suppliesUsed, 'supply');
+  const costumes = getLinked(item.costumesUsed, 'costume');
+
+  // Deduplicate
+  const series = [...new Map(seriesList.map(s => [s.id, s])).values()];
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const dimensions = [item.height, item.width, item.depth].filter(Boolean).join(' × ');
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 print:p-0 print:bg-white" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto print:max-w-none print:max-h-none print:rounded-none print:shadow-none" onClick={e => e.stopPropagation()}>
+        {/* Header with close/print buttons - hidden on print */}
+        <div className="flex justify-between items-center p-4 border-b no-print">
+          <h2 className="text-lg font-semibold text-gray-900">Artwork Card</h2>
+          <div className="flex gap-2">
+            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">
+              <Icons.Print /> Print / Save PDF
+            </button>
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg" title="Close"><Icons.X /></button>
+          </div>
+        </div>
+
+        {/* Card Content */}
+        <div className="p-8 print:p-12">
+          {/* Title Section */}
+          <div className="border-b-2 border-gray-900 pb-4 mb-6">
+            <h1 className="text-3xl font-bold italic text-gray-900 mb-1">{item.title}</h1>
+            {item.invNumber && <p className="text-sm text-gray-500 font-mono">Inventory #{item.invNumber}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:grid-cols-3">
+            {/* Image */}
+            <div className="md:col-span-1">
+              {getDisplayImage(item.image, false) ? (
+                <img src={getDisplayImage(item.image, false)} alt={item.title} className="w-full rounded-lg shadow-md" />
+              ) : (
+                <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                  <Icons.Palette className="w-12 h-12 text-gray-300" />
+                </div>
+              )}
+            </div>
+
+            {/* Details */}
+            <div className="md:col-span-2 space-y-4">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                {item.dateCompleted && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</p>
+                    <p className="text-gray-900">{item.dateCompleted}</p>
+                  </div>
+                )}
+                {item.medium && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Medium</p>
+                    <p className="text-gray-900">{item.medium}</p>
+                  </div>
+                )}
+                {dimensions && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dimensions</p>
+                    <p className="text-gray-900">{dimensions} {item.units}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</p>
+                  <p className="text-gray-900">{item.status}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</p>
+                  <p className="text-gray-900">{item.location}</p>
+                </div>
+              </div>
+
+              {/* Series */}
+              {series.length > 0 && (
+                <div className="pt-3 border-t">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Part of Series</p>
+                  <div className="flex flex-wrap gap-2">
+                    {series.map(s => (
+                      <span key={s.id} className="px-3 py-1 bg-cyan-50 text-cyan-700 rounded-full text-sm font-medium">{s.name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Materials / Supplies */}
+              {supplies.length > 0 && (
+                <div className="pt-3 border-t">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Materials Used</p>
+                  <div className="flex flex-wrap gap-2">
+                    {supplies.map(s => (
+                      <span key={s.id} className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-sm">
+                        {s.name}{s.brand ? ` (${s.brand})` : ''}{s.color ? ` - ${s.color}` : ''}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Reference Books */}
+              {books.length > 0 && (
+                <div className="pt-3 border-t">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Influenced By</p>
+                  <ul className="space-y-1">
+                    {books.map(b => (
+                      <li key={b.id} className="text-sm text-gray-700">
+                        <span className="font-medium">{b.title}</span>
+                        {b.authors && <span className="text-gray-500"> by {b.authors}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Props & Costumes */}
+              {costumes.length > 0 && (
+                <div className="pt-3 border-t">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Props & Costumes Featured</p>
+                  <div className="flex flex-wrap gap-2">
+                    {costumes.map(c => (
+                      <span key={c.id} className="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-sm">
+                        {c.name} <span className="text-rose-500">({c.costumeType})</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {item.notes && (
+                <div className="pt-3 border-t">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Notes</p>
+                  <p className="text-gray-700 text-sm whitespace-pre-wrap">{item.notes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t text-center text-xs text-gray-400 print:mt-12">
+            <p>Artist Studio Pro • Catalog Card • Generated {new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SERIES CARD (Printable series catalog)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const SeriesCard = ({ item, items, onClose }) => {
+  const getLinked = (ids, type) => items.filter(i => ids?.includes(i.id) && i.type === type);
+
+  // Get all artworks in this series (from both directions)
+  const artworksList = [...getLinked(item.artworks, 'artwork'), ...items.filter(i => i.type === 'artwork' && i.seriesIds?.includes(item.id))];
+  const artworks = [...new Map(artworksList.map(a => [a.id, a])).values()];
+
+  // Sort artworks by date if available
+  artworks.sort((a, b) => (a.dateCompleted || '').localeCompare(b.dateCompleted || ''));
+
+  const handlePrint = () => window.print();
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 print:p-0 print:bg-white" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-auto print:max-w-none print:max-h-none print:rounded-none print:shadow-none" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 border-b no-print">
+          <h2 className="text-lg font-semibold text-gray-900">Series Card</h2>
+          <div className="flex gap-2">
+            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors">
+              <Icons.Print /> Print / Save PDF
+            </button>
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg" title="Close"><Icons.X /></button>
+          </div>
+        </div>
+
+        {/* Card Content */}
+        <div className="p-8 print:p-12">
+          {/* Title Section */}
+          <div className="border-b-2 border-cyan-600 pb-4 mb-6">
+            <div className="flex items-start gap-4">
+              {getDisplayImage(item.image, false) && (
+                <img src={getDisplayImage(item.image, false)} alt={item.name} className="w-24 h-24 object-cover rounded-lg shadow-md" />
+              )}
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-cyan-600 uppercase tracking-wide mb-1">Series / Body of Work</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{item.name}</h1>
+                {item.description && <p className="text-gray-600">{item.description}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Series Details */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</p>
+              <p className="text-gray-900 font-medium">{item.status}</p>
+            </div>
+            {item.theme && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Theme</p>
+                <p className="text-gray-900">{item.theme}</p>
+              </div>
+            )}
+            {item.medium && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Primary Medium</p>
+                <p className="text-gray-900">{item.medium}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Works in Series</p>
+              <p className="text-gray-900 font-medium">{artworks.length} artwork{artworks.length !== 1 ? 's' : ''}</p>
+            </div>
+            {item.startDate && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Started</p>
+                <p className="text-gray-900">{item.startDate}</p>
+              </div>
+            )}
+            {item.endDate && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Completed</p>
+                <p className="text-gray-900">{item.endDate}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Artworks Grid */}
+          {artworks.length > 0 && (
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Icons.Palette /> Artworks in This Series
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 print:grid-cols-4">
+                {artworks.map(artwork => (
+                  <div key={artwork.id} className="bg-gray-50 rounded-lg overflow-hidden">
+                    {getDisplayImage(artwork.image, true) ? (
+                      <img src={getDisplayImage(artwork.image, true)} alt={artwork.title} className="w-full aspect-square object-cover" />
+                    ) : (
+                      <div className="w-full aspect-square bg-violet-100 flex items-center justify-center">
+                        <Icons.Palette className="w-8 h-8 text-violet-300" />
+                      </div>
+                    )}
+                    <div className="p-2">
+                      <p className="font-medium text-gray-900 text-sm italic truncate">{artwork.title}</p>
+                      <p className="text-xs text-gray-500">{artwork.dateCompleted || 'No date'} • {artwork.medium || 'Mixed media'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {item.notes && (
+            <div className="mt-6 pt-4 border-t">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Notes</p>
+              <p className="text-gray-700 text-sm whitespace-pre-wrap">{item.notes}</p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t text-center text-xs text-gray-400 print:mt-12">
+            <p>Artist Studio Pro • Series Catalog • Generated {new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOOK CARD (Printable book reference card)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const BookCard = ({ item, items, onClose }) => {
+  const getLinked = (ids, type) => items.filter(i => ids?.includes(i.id) && i.type === type);
+
+  // Get all connections
+  const relatedArtworks = [...getLinked(item.relatedArtworks, 'artwork'), ...items.filter(i => i.type === 'artwork' && i.influencedBy?.includes(item.id))];
+  const artworks = [...new Map(relatedArtworks.map(a => [a.id, a])).values()];
+  const costumes = getLinked(item.relatedCostumes, 'costume');
+
+  const handlePrint = () => window.print();
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 print:p-0 print:bg-white" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto print:max-w-none print:max-h-none print:rounded-none print:shadow-none" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 border-b no-print">
+          <h2 className="text-lg font-semibold text-gray-900">Book Card</h2>
+          <div className="flex gap-2">
+            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+              <Icons.Print /> Print / Save PDF
+            </button>
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg" title="Close"><Icons.X /></button>
+          </div>
+        </div>
+
+        {/* Card Content */}
+        <div className="p-8 print:p-12">
+          {/* Title Section */}
+          <div className="border-b-2 border-emerald-600 pb-4 mb-6">
+            <div className="flex items-start gap-6">
+              {getDisplayImage(item.image, false) ? (
+                <img src={getDisplayImage(item.image, false)} alt={item.title} className="w-32 shadow-lg rounded" />
+              ) : (
+                <div className="w-32 h-44 bg-emerald-100 rounded flex items-center justify-center">
+                  <Icons.Book className="w-12 h-12 text-emerald-300" />
+                </div>
+              )}
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">Reference Book</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{item.title}</h1>
+                {item.authors && <p className="text-lg text-gray-600 mb-2">by {item.authors}</p>}
+                {/* Rating */}
+                {item.rating > 0 && (
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(n => (
+                      <span key={n} className={item.rating >= n ? 'text-yellow-400' : 'text-gray-200'}>★</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Book Details */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            {item.publisher && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Publisher</p>
+                <p className="text-gray-900">{item.publisher}</p>
+              </div>
+            )}
+            {item.pubYear && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Year</p>
+                <p className="text-gray-900">{item.pubYear}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</p>
+              <p className="text-gray-900">{item.category}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</p>
+              <p className="text-gray-900">{item.status}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</p>
+              <p className="text-gray-900">{item.location}</p>
+            </div>
+            {item.isbn && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">ISBN</p>
+                <p className="text-gray-900 font-mono text-sm">{item.isbn}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Influenced Artworks */}
+          {artworks.length > 0 && (
+            <div className="border-t pt-4 mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Artworks Influenced by This Book</p>
+              <div className="flex flex-wrap gap-3">
+                {artworks.map(artwork => (
+                  <div key={artwork.id} className="flex items-center gap-2 bg-violet-50 rounded-lg p-2 pr-3">
+                    {getDisplayImage(artwork.image, true) ? (
+                      <img src={getDisplayImage(artwork.image, true)} alt={artwork.title} className="w-10 h-10 object-cover rounded" />
+                    ) : (
+                      <div className="w-10 h-10 bg-violet-200 rounded flex items-center justify-center">
+                        <Icons.Palette className="w-5 h-5 text-violet-400" />
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-violet-900 italic">{artwork.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Related Costumes/Props */}
+          {costumes.length > 0 && (
+            <div className="border-t pt-4 mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Related Props & Costumes</p>
+              <div className="flex flex-wrap gap-2">
+                {costumes.map(c => (
+                  <span key={c.id} className="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-sm">
+                    {c.name} ({c.costumeType})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {item.notes && (
+            <div className="border-t pt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Notes</p>
+              <p className="text-gray-700 text-sm whitespace-pre-wrap">{item.notes}</p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t text-center text-xs text-gray-400 print:mt-12">
+            <p>Artist Studio Pro • Book Reference Card • Generated {new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COSTUME/PROP CARD (Printable prop reference card)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CostumeCard = ({ item, items, onClose }) => {
+  const getLinked = (ids, type) => items.filter(i => ids?.includes(i.id) && i.type === type);
+
+  // Get all connections
+  const charactersList = [...getLinked(item.assignedToCharacters, 'character'), ...items.filter(i => i.type === 'character' && i.assignedCostumes?.includes(item.id))];
+  const characters = [...new Map(charactersList.map(c => [c.id, c])).values()];
+
+  const artworksList = [...getLinked(item.usedInArtworks, 'artwork'), ...items.filter(i => i.type === 'artwork' && i.costumesUsed?.includes(item.id))];
+  const artworks = [...new Map(artworksList.map(a => [a.id, a])).values()];
+
+  const books = getLinked(item.relatedBooks, 'book');
+  const source = item.sourceId ? items.find(i => i.id === item.sourceId) : null;
+
+  const handlePrint = () => window.print();
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 print:p-0 print:bg-white" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-auto print:max-w-none print:max-h-none print:rounded-none print:shadow-none" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 border-b no-print">
+          <h2 className="text-lg font-semibold text-gray-900">Prop / Costume Card</h2>
+          <div className="flex gap-2">
+            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors">
+              <Icons.Print /> Print / Save PDF
+            </button>
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg" title="Close"><Icons.X /></button>
+          </div>
+        </div>
+
+        {/* Card Content */}
+        <div className="p-8 print:p-12">
+          {/* Title Section */}
+          <div className="border-b-2 border-rose-600 pb-4 mb-6">
+            <div className="flex items-start gap-6">
+              {getDisplayImage(item.image, false) ? (
+                <img src={getDisplayImage(item.image, false)} alt={item.name} className="w-40 h-40 object-cover rounded-lg shadow-lg" />
+              ) : (
+                <div className="w-40 h-40 bg-rose-100 rounded-lg flex items-center justify-center">
+                  <Icons.Hanger className="w-16 h-16 text-rose-300" />
+                </div>
+              )}
+              <div className="flex-1">
+                <span className="inline-block px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-sm font-medium mb-2">{item.costumeType}</span>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">{item.name}</h1>
+                {item.description && <p className="text-gray-600">{item.description}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Details Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Era / Period</p>
+              <p className="text-gray-900">{item.era}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Condition</p>
+              <p className={`font-medium ${item.condition === 'Needs Repair' ? 'text-amber-600' : 'text-gray-900'}`}>{item.condition}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</p>
+              <p className="text-gray-900">{item.location}</p>
+            </div>
+            {item.materials && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Materials</p>
+                <p className="text-gray-900">{item.materials}</p>
+              </div>
+            )}
+            {item.colors && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Colors</p>
+                <p className="text-gray-900">{item.colors}</p>
+              </div>
+            )}
+            {item.acquiredFrom && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Acquired From</p>
+                <p className="text-gray-900">{item.acquiredFrom}</p>
+              </div>
+            )}
+            {item.acquiredDate && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Acquired Date</p>
+                <p className="text-gray-900">{item.acquiredDate}</p>
+              </div>
+            )}
+            {item.price && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Price</p>
+                <p className="text-gray-900">${item.price}</p>
+              </div>
+            )}
+            {source && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vendor</p>
+                <p className="text-gray-900">{source.name}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Assigned Characters */}
+          {characters.length > 0 && (
+            <div className="border-t pt-4 mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Assigned to Characters</p>
+              <div className="flex flex-wrap gap-3">
+                {characters.map(char => (
+                  <div key={char.id} className="flex items-center gap-2 bg-fuchsia-50 rounded-lg p-2 pr-3">
+                    {getDisplayImage(char.image, true) ? (
+                      <img src={getDisplayImage(char.image, true)} alt={char.name} className="w-10 h-10 object-cover rounded-full" />
+                    ) : (
+                      <div className="w-10 h-10 bg-fuchsia-200 rounded-full flex items-center justify-center">
+                        <Icons.Mask className="w-5 h-5 text-fuchsia-400" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-fuchsia-900">{char.name}</p>
+                      <p className="text-xs text-fuchsia-600">{char.characterType}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Featured in Artworks */}
+          {artworks.length > 0 && (
+            <div className="border-t pt-4 mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Featured in Artworks</p>
+              <div className="flex flex-wrap gap-3">
+                {artworks.map(artwork => (
+                  <div key={artwork.id} className="flex items-center gap-2 bg-violet-50 rounded-lg p-2 pr-3">
+                    {getDisplayImage(artwork.image, true) ? (
+                      <img src={getDisplayImage(artwork.image, true)} alt={artwork.title} className="w-10 h-10 object-cover rounded" />
+                    ) : (
+                      <div className="w-10 h-10 bg-violet-200 rounded flex items-center justify-center">
+                        <Icons.Palette className="w-5 h-5 text-violet-400" />
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-violet-900 italic">{artwork.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reference Books */}
+          {books.length > 0 && (
+            <div className="border-t pt-4 mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Reference Books</p>
+              <ul className="space-y-1">
+                {books.map(b => (
+                  <li key={b.id} className="text-sm text-gray-700">
+                    <span className="font-medium">{b.title}</span>
+                    {b.authors && <span className="text-gray-500"> by {b.authors}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Notes */}
+          {item.notes && (
+            <div className="border-t pt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Notes</p>
+              <p className="text-gray-700 text-sm whitespace-pre-wrap">{item.notes}</p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t text-center text-xs text-gray-400 print:mt-12">
+            <p>Artist Studio Pro • Prop/Costume Card • Generated {new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DETAIL VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem, onShowCard }) => {
   const config = typeConfig[item.type];
   const getLinked = (ids, type) => items.filter(i => ids?.includes(i.id) && i.type === type);
   const source = item.sourceId ? items.find(i => i.id === item.sourceId) : null;
 
   const connections = [];
   if (item.type === 'artwork') {
+    const seriesList = [...getLinked(item.seriesIds, 'series'), ...items.filter(i => i.type === 'series' && i.artworks?.includes(item.id))];
     const books = getLinked(item.influencedBy, 'book');
     const supplies = getLinked(item.suppliesUsed, 'supply');
     const costumes = getLinked(item.costumesUsed, 'costume');
+    if (seriesList.length) connections.push({ label: 'Part of series', items: [...new Map(seriesList.map(s => [s.id, s])).values()], type: 'series' });
     if (books.length) connections.push({ label: 'Influenced by', items: books, type: 'book' });
     if (supplies.length) connections.push({ label: 'Supplies used', items: supplies, type: 'supply' });
     if (costumes.length) connections.push({ label: 'Props featured', items: costumes, type: 'costume' });
+  }
+  if (item.type === 'series') {
+    const artworks = [...getLinked(item.artworks, 'artwork'), ...items.filter(i => i.type === 'artwork' && i.seriesIds?.includes(item.id))];
+    if (artworks.length) connections.push({ label: 'Artworks in series', items: [...new Map(artworks.map(a => [a.id, a])).values()], type: 'artwork' });
   }
   if (item.type === 'book') {
     const artworks = [...getLinked(item.relatedArtworks, 'artwork'), ...items.filter(i => i.type === 'artwork' && i.influencedBy?.includes(item.id))];
@@ -849,9 +1636,9 @@ const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem }) => {
     <div className="space-y-4">
       <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"><Icons.Back /> Back to Gallery</button>
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        {item.image && (
+        {getDisplayImage(item.image, false) && (
           <div className={`${config.bgLight} p-8 flex justify-center`}>
-            <img src={item.image} alt="" className="max-h-64 object-contain rounded-xl shadow-lg" />
+            <img src={getDisplayImage(item.image, false)} alt="" className="max-h-96 object-contain rounded-xl shadow-lg cursor-pointer hover:opacity-90" onClick={() => window.open(getDisplayImage(item.image, false), '_blank')} title="Click to view full size" />
           </div>
         )}
         <div className="p-6">
@@ -866,23 +1653,36 @@ const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem }) => {
               <h1 className={`text-2xl font-bold text-gray-900 mt-2 ${item.type === 'artwork' ? 'italic' : ''}`}>{item.name || item.title}</h1>
               {item.authors && <p className="text-gray-600">{item.authors}</p>}
               {item.brand && <p className="text-gray-600">{item.brand}</p>}
+              {item.type === 'series' && item.description && <p className="text-gray-600 mt-1">{item.description}</p>}
               {item.rating > 0 && <div className="flex gap-0.5 mt-2">{[1,2,3,4,5].map(n => <span key={n} className={item.rating >= n ? 'text-yellow-400' : 'text-gray-200'}><Icons.Star /></span>)}</div>}
             </div>
             <div className="flex gap-2">
-              <button onClick={onEdit} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"><Icons.Edit /></button>
-              <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Icons.Trash /></button>
+              {item.type === 'artwork' && (
+                <button onClick={() => onShowCard('artwork')} className="p-2 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors" title="View Artwork Card"><Icons.Document /></button>
+              )}
+              {item.type === 'series' && (
+                <button onClick={() => onShowCard('series')} className="p-2 text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors" title="View Series Card"><Icons.Document /></button>
+              )}
+              {item.type === 'book' && (
+                <button onClick={() => onShowCard('book')} className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="View Book Card"><Icons.Document /></button>
+              )}
+              {item.type === 'costume' && (
+                <button onClick={() => onShowCard('costume')} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="View Prop/Costume Card"><Icons.Document /></button>
+              )}
+              <button onClick={onEdit} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors" title="Edit"><Icons.Edit /></button>
+              <button onClick={onDelete} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Icons.Trash /></button>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
             {item.type === 'artwork' && <>
-              <div><span className="text-gray-400 text-xs">Medium</span><p className="font-medium">{item.medium || 'â'}</p></div>
-              <div><span className="text-gray-400 text-xs">Dimensions</span><p className="font-medium">{[item.height, item.width, item.depth].filter(Boolean).join(' Ã ') + (item.units ? ` ${item.units}` : '') || 'â'}</p></div>
+              <div><span className="text-gray-400 text-xs">Medium</span><p className="font-medium">{item.medium || '—'}</p></div>
+              <div><span className="text-gray-400 text-xs">Dimensions</span><p className="font-medium">{[item.height, item.width, item.depth].filter(Boolean).join(' × ') + (item.units ? ` ${item.units}` : '') || '—'}</p></div>
               <div><span className="text-gray-400 text-xs">Status</span><p className="font-medium">{item.status}</p></div>
               <div><span className="text-gray-400 text-xs">Location</span><p className="font-medium">{item.location}</p></div>
               {item.series && <div><span className="text-gray-400 text-xs">Series</span><p className="font-medium">{item.series}</p></div>}
             </>}
             {item.type === 'book' && <>
-              <div><span className="text-gray-400 text-xs">Publisher</span><p className="font-medium">{item.publisher || 'â'}</p></div>
+              <div><span className="text-gray-400 text-xs">Publisher</span><p className="font-medium">{item.publisher || '—'}</p></div>
               <div><span className="text-gray-400 text-xs">Category</span><p className="font-medium">{item.category}</p></div>
               <div><span className="text-gray-400 text-xs">Status</span><p className="font-medium">{item.status}</p></div>
             </>}
@@ -903,6 +1703,14 @@ const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem }) => {
               <div><span className="text-gray-400 text-xs">Era</span><p className="font-medium">{item.era}</p></div>
               <div><span className="text-gray-400 text-xs">Condition</span><p className="font-medium">{item.condition}</p></div>
               <div><span className="text-gray-400 text-xs">Location</span><p className="font-medium">{item.location}</p></div>
+            </>}
+            {item.type === 'series' && <>
+              <div><span className="text-gray-400 text-xs">Status</span><p className="font-medium">{item.status}</p></div>
+              {item.theme && <div><span className="text-gray-400 text-xs">Theme</span><p className="font-medium">{item.theme}</p></div>}
+              {item.medium && <div><span className="text-gray-400 text-xs">Medium</span><p className="font-medium">{item.medium}</p></div>}
+              {item.startDate && <div><span className="text-gray-400 text-xs">Started</span><p className="font-medium">{item.startDate}</p></div>}
+              {item.endDate && <div><span className="text-gray-400 text-xs">Completed</span><p className="font-medium">{item.endDate}</p></div>}
+              <div><span className="text-gray-400 text-xs">Works</span><p className="font-medium">{(item.artworks?.length || 0) + items.filter(i => i.type === 'artwork' && i.seriesIds?.includes(item.id)).length} artworks</p></div>
             </>}
             {item.type === 'source' && <>
               <div><span className="text-gray-400 text-xs">Type</span><p className="font-medium">{item.storeType}</p></div>
@@ -936,13 +1744,14 @@ const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem }) => {
   );
 };
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN APP
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function ArtistStudioPro() {
   const [showWelcome, setShowWelcome] = useState(() => !storage.get('onboarded', false));
   const [showHelp, setShowHelp] = useState(false);
+  const [showCard, setShowCard] = useState(null); // null, 'artwork', 'series', or 'book'
   const [items, setItems] = useState([]);
   const [view, setView] = useState('gallery');
   const [viewMode, setViewMode] = useState('grid');
@@ -1017,7 +1826,42 @@ function ArtistStudioPro() {
     a.download = `artist_studio_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Backup exported!');
+    showToast('Backup exported to Downloads!');
+  };
+
+  // Backup to a specific folder (external drive, thumb drive, etc.)
+  const handleBackupToFolder = async () => {
+    if (!('showSaveFilePicker' in window)) {
+      // Fallback for browsers that don't support File System Access API
+      alert('Your browser doesn\'t support folder selection. Use the regular Export button instead, then manually copy the file to your external drive.');
+      handleExport();
+      return;
+    }
+
+    try {
+      const fileName = `artist_studio_backup_${new Date().toISOString().split('T')[0]}.json`;
+      const json = JSON.stringify(items, null, 2);
+
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [{
+          description: 'JSON Backup File',
+          accept: { 'application/json': ['.json'] },
+        }],
+      });
+
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+
+      // Show the path where it was saved
+      showToast(`Backup saved to: ${handle.name}`);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Backup failed:', err);
+        alert('Could not save backup. Try using the regular Export button instead.');
+      }
+    }
   };
 
   const handleImport = (e) => {
@@ -1048,6 +1892,7 @@ function ArtistStudioPro() {
     else if (activeTab === 'costume') filtered = items.filter(i => i.type === 'costume');
     else if (activeTab === 'character') filtered = items.filter(i => i.type === 'character');
     else if (activeTab === 'source') filtered = items.filter(i => i.type === 'source');
+    else if (activeTab === 'series') filtered = items.filter(i => i.type === 'series');
     else if (activeTab === 'reorder') filtered = items.filter(i => i.type === 'supply' && ['Low Stock', 'Out of Stock'].includes(i.stockStatus));
     else if (activeTab === 'wip') filtered = items.filter(i => i.type === 'artwork' && i.status === 'In Progress');
 
@@ -1059,7 +1904,8 @@ function ArtistStudioPro() {
         (i.brand || '').toLowerCase().includes(s) ||
         (i.medium || '').toLowerCase().includes(s) ||
         (i.production || '').toLowerCase().includes(s) ||
-        (i.personality || '').toLowerCase().includes(s)
+        (i.personality || '').toLowerCase().includes(s) ||
+        (i.theme || '').toLowerCase().includes(s)
       );
     }
     return filtered;
@@ -1074,6 +1920,7 @@ function ArtistStudioPro() {
     costume: items.filter(i => i.type === 'costume').length,
     character: items.filter(i => i.type === 'character').length,
     source: items.filter(i => i.type === 'source').length,
+    series: items.filter(i => i.type === 'series').length,
     reorder: items.filter(i => i.type === 'supply' && ['Low Stock', 'Out of Stock'].includes(i.stockStatus)).length,
     wip: items.filter(i => i.type === 'artwork' && i.status === 'In Progress').length,
   };
@@ -1081,6 +1928,7 @@ function ArtistStudioPro() {
   const tabs = [
     { id: 'all', label: 'All', count: counts.all },
     { id: 'artwork', label: 'Artworks', Icon: Icons.Palette, count: counts.artwork },
+    { id: 'series', label: 'Series', Icon: Icons.Collection, count: counts.series },
     { id: 'book', label: 'Books', Icon: Icons.Book, count: counts.book },
     { id: 'character', label: 'Characters', Icon: Icons.Mask, count: counts.character },
     { id: 'costume', label: 'Props', Icon: Icons.Hanger, count: counts.costume },
@@ -1107,8 +1955,9 @@ function ArtistStudioPro() {
                   <OnlineIndicator isOnline={isOnline} />
                 </div>
                 <p className="text-gray-400 text-xs mt-0.5 flex items-center gap-2">
-                  <Icons.Database /> {counts.all} items saved locally
-                  {lastSaved && <span className="text-gray-500 hidden sm:inline">â¢ Last saved {new Date(lastSaved).toLocaleTimeString()}</span>}
+                  <Icons.Database /> {counts.all} items ({getStorageUsage()})
+                  {lastSaved && <span className="text-gray-500 hidden sm:inline">• Saved {new Date(lastSaved).toLocaleTimeString()}</span>}
+                  <button onClick={() => setShowHelp(true)} className="text-gray-500 hover:text-gray-300 underline hidden lg:inline">View storage location</button>
                 </p>
               </div>
             </div>
@@ -1120,20 +1969,24 @@ function ArtistStudioPro() {
                   <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition-colors" title="Import backup">
                     <Icons.Upload /> Import
                   </button>
-                  <button onClick={handleExport} disabled={items.length === 0} className="flex items-center gap-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition-colors disabled:opacity-50" title="Export backup">
+                  <button onClick={handleExport} disabled={items.length === 0} className="flex items-center gap-1 bg-white/10 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition-colors disabled:opacity-50" title="Quick export to Downloads">
                     <Icons.Download /> Export
+                  </button>
+                  <button onClick={handleBackupToFolder} disabled={items.length === 0} className="flex items-center gap-1 bg-green-600/80 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50" title="Save backup to external drive or specific folder">
+                    <Icons.FolderOpen /> Backup to Folder
                   </button>
                   <div className="w-px h-8 bg-white/20 mx-1" />
                 </div>
                 {[
-                  { type: 'artwork', config: typeConfig.artwork },
-                  { type: 'book', config: typeConfig.book },
-                  { type: 'character', config: typeConfig.character },
-                  { type: 'costume', config: typeConfig.costume },
-                  { type: 'supply', config: typeConfig.supply },
-                  { type: 'source', config: typeConfig.source },
-                ].map(({ type, config }) => (
-                  <button key={type} onClick={() => { setAddingType(type); setView('form'); }} className={`flex items-center gap-1 ${config.bgDark} text-white px-2.5 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}>
+                  { type: 'artwork', config: typeConfig.artwork, label: 'Add Artwork' },
+                  { type: 'series', config: typeConfig.series, label: 'Add Series' },
+                  { type: 'book', config: typeConfig.book, label: 'Add Book' },
+                  { type: 'character', config: typeConfig.character, label: 'Add Character' },
+                  { type: 'costume', config: typeConfig.costume, label: 'Add Prop/Costume' },
+                  { type: 'supply', config: typeConfig.supply, label: 'Add Supply' },
+                  { type: 'source', config: typeConfig.source, label: 'Add Vendor' },
+                ].map(({ type, config, label }) => (
+                  <button key={type} onClick={() => { setAddingType(type); setView('form'); }} title={label} className={`flex items-center gap-1 ${config.bgDark} text-white px-2.5 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}>
                     <config.Icon />
                   </button>
                 ))}
@@ -1181,8 +2034,8 @@ function ArtistStudioPro() {
                 />
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Icons.Search /></div>
               </div>
-              <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-brand-100 text-brand-700' : 'text-gray-400 hover:text-gray-600'}`}><Icons.Grid /></button>
-              <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-brand-100 text-brand-700' : 'text-gray-400 hover:text-gray-600'}`}><Icons.List /></button>
+              <button onClick={() => setViewMode('grid')} title="Grid View" className={`p-2.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-brand-100 text-brand-700' : 'text-gray-400 hover:text-gray-600'}`}><Icons.Grid /></button>
+              <button onClick={() => setViewMode('list')} title="List View" className={`p-2.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-brand-100 text-brand-700' : 'text-gray-400 hover:text-gray-600'}`}><Icons.List /></button>
             </div>
 
             {filtered.length === 0 ? (
@@ -1202,8 +2055,8 @@ function ArtistStudioPro() {
                       className="bg-white rounded-xl shadow-sm overflow-hidden cursor-pointer hover:shadow-lg transition-all group"
                     >
                       <div className={`aspect-square relative overflow-hidden ${config.bgLight} flex items-center justify-center`}>
-                        {item.image ? (
-                          <img src={item.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        {getDisplayImage(item.image, true) ? (
+                          <img src={getDisplayImage(item.image, true)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         ) : (
                           <div className={`${config.text} opacity-30`}><config.Icon /></div>
                         )}
@@ -1215,7 +2068,7 @@ function ArtistStudioPro() {
                       </div>
                       <div className="p-3">
                         <h3 className={`font-semibold text-gray-900 truncate ${item.type === 'artwork' ? 'italic' : ''}`}>{item.name || item.title}</h3>
-                        <p className="text-xs text-gray-500 truncate">{item.authors || item.brand || item.medium || item.production || item.era || item.storeType || ''}</p>
+                        <p className="text-xs text-gray-500 truncate">{item.authors || item.brand || item.medium || item.production || item.era || item.storeType || item.theme || ''}</p>
                       </div>
                     </div>
                   );
@@ -1232,8 +2085,8 @@ function ArtistStudioPro() {
                       className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                     >
                       <div className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 ${config.bgLight} flex items-center justify-center`}>
-                        {item.image ? (
-                          <img src={item.image} alt="" className="w-full h-full object-cover" />
+                        {getDisplayImage(item.image, true) ? (
+                          <img src={getDisplayImage(item.image, true)} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <div className={`${config.text} opacity-30 scale-75`}><config.Icon /></div>
                         )}
@@ -1256,6 +2109,7 @@ function ArtistStudioPro() {
 
         {view === 'form' && (
           addingType === 'artwork' || editingItem?.type === 'artwork' ? <ArtworkForm item={editingItem} items={items} onSave={handleSave} onCancel={() => { setEditingItem(null); setAddingType(null); setView('gallery'); }} /> :
+          addingType === 'series' || editingItem?.type === 'series' ? <SeriesForm item={editingItem} items={items} onSave={handleSave} onCancel={() => { setEditingItem(null); setAddingType(null); setView('gallery'); }} /> :
           addingType === 'book' || editingItem?.type === 'book' ? <BookForm item={editingItem} items={items} onSave={handleSave} onCancel={() => { setEditingItem(null); setAddingType(null); setView('gallery'); }} /> :
           addingType === 'supply' || editingItem?.type === 'supply' ? <SupplyForm item={editingItem} items={items} onSave={handleSave} onCancel={() => { setEditingItem(null); setAddingType(null); setView('gallery'); }} /> :
           addingType === 'costume' || editingItem?.type === 'costume' ? <CostumeForm item={editingItem} items={items} onSave={handleSave} onCancel={() => { setEditingItem(null); setAddingType(null); setView('gallery'); }} /> :
@@ -1271,32 +2125,30 @@ function ArtistStudioPro() {
             onDelete={() => handleDelete(selectedItem.id)}
             onBack={() => { setSelectedItem(null); setView('gallery'); }}
             onViewItem={(item) => setSelectedItem(item)}
+            onShowCard={(type) => setShowCard(type)}
           />
         )}
       </main>
 
       <Toast message={toast.message} show={toast.show} />
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showCard === 'artwork' && selectedItem && (
+        <ArtworkCard item={selectedItem} items={items} onClose={() => setShowCard(null)} />
+      )}
+      {showCard === 'series' && selectedItem && (
+        <SeriesCard item={selectedItem} items={items} onClose={() => setShowCard(null)} />
+      )}
+      {showCard === 'book' && selectedItem && (
+        <BookCard item={selectedItem} items={items} onClose={() => setShowCard(null)} />
+      )}
+      {showCard === 'costume' && selectedItem && (
+        <CostumeCard item={selectedItem} items={items} onClose={() => setShowCard(null)} />
+      )}
     </div>
   );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<ArtistStudioPro />);
-    </script>
-
-    <!-- Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((registration) => {
-                        console.log('Artist Studio Pro: Service Worker registered', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Artist Studio Pro: Service Worker registration failed', error);
-                    });
-            });
-        }
     </script>
 </body>
 </html>
