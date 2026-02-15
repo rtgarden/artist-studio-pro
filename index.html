@@ -60,17 +60,17 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // ARTIST STUDIO PRO - Commercial Edition
 // Version 1.0.0
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const { useState, useEffect, useRef, useCallback } = React;
 const APP_VERSION = '1.0.0';
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // STORAGE & UTILITIES
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const storage = {
   get: (key, defaultValue) => {
@@ -92,9 +92,9 @@ const storage = {
 
 const formatDate = (date) => new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // ICONS
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const Icons = {
   Logo: ({ className = "w-8 h-8" }) => (
@@ -138,9 +138,9 @@ const Icons = {
   Shield: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const Toast = ({ message, show }) => (
   <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 gradient-brand text-white px-6 py-3 rounded-xl shadow-2xl transition-all duration-300 z-50 flex items-center gap-2 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
@@ -253,9 +253,9 @@ const LinkPicker = ({ items, selectedIds, onChange, itemType, label }) => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // WELCOME SCREEN
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const WelcomeScreen = ({ onComplete }) => {
   const [step, setStep] = useState(0);
@@ -290,6 +290,7 @@ const WelcomeScreen = ({ onComplete }) => {
         <div className="space-y-3">
           {[
             { icon: Icons.Palette, color: 'bg-violet-100 text-violet-600', name: 'Artworks', desc: 'Paintings, sculptures, and creations' },
+            { icon: Icons.Layers, color: 'bg-cyan-100 text-cyan-600', name: 'Series', desc: 'Group related artworks into bodies of work with themes, timelines, and descriptions' },
             { icon: Icons.Book, color: 'bg-emerald-100 text-emerald-600', name: 'Books', desc: 'Reference library and inspiration' },
             { icon: Icons.Box, color: 'bg-amber-100 text-amber-600', name: 'Supplies', desc: 'Materials with stock tracking' },
             { icon: Icons.Hanger, color: 'bg-rose-100 text-rose-600', name: 'Costumes & Props', desc: 'Period pieces and reference items' },
@@ -356,9 +357,9 @@ const WelcomeScreen = ({ onComplete }) => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // HELP MODAL
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const HelpModal = ({ onClose }) => {
   const [section, setSection] = useState('getting-started');
@@ -404,9 +405,9 @@ const HelpModal = ({ onClose }) => {
         <div className="space-y-4">
           <p>Link items together to understand your creative process:</p>
           <ul className="space-y-2 text-gray-600">
-            <li>• <strong>Artworks</strong> can reference books that influenced them, supplies used, and props featured</li>
-            <li>• <strong>Characters</strong> can be linked to their costumes and reference books</li>
-            <li>• <strong>Supplies</strong> can track which vendor they came from</li>
+            <li>â¢ <strong>Artworks</strong> can reference books that influenced them, supplies used, and props featured</li>
+            <li>â¢ <strong>Characters</strong> can be linked to their costumes and reference books</li>
+            <li>â¢ <strong>Supplies</strong> can track which vendor they came from</li>
           </ul>
           <p className="text-sm text-gray-500">These connections appear automatically when viewing any item's details.</p>
         </div>
@@ -440,11 +441,11 @@ const HelpModal = ({ onClose }) => {
           <div className="space-y-3">
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900">iPhone/iPad</p>
-              <p className="text-sm text-gray-600">Tap the Share button → "Add to Home Screen"</p>
+              <p className="text-sm text-gray-600">Tap the Share button â "Add to Home Screen"</p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900">Android</p>
-              <p className="text-sm text-gray-600">Tap the menu (⋮) → "Add to Home screen"</p>
+              <p className="text-sm text-gray-600">Tap the menu (â®) â "Add to Home screen"</p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900">Desktop (Chrome/Edge)</p>
@@ -497,9 +498,9 @@ const HelpModal = ({ onClose }) => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const LOCATIONS = ['Studio', 'Storage', 'Office', 'On Loan', 'Gallery', 'Sold', 'Gifted'];
 const ARTWORK_STATUS = ['In Progress', 'Completed', 'For Sale', 'Sold', 'Not for Sale'];
@@ -523,9 +524,9 @@ const typeConfig = {
   source: { color: 'blue', bgLight: 'bg-blue-50', bgMedium: 'bg-blue-100', text: 'text-blue-700', bgDark: 'bg-blue-600', Icon: Icons.Store },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // FORMS (Abbreviated for length - full versions in production)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const ArtworkForm = ({ item, items, onSave, onCancel }) => {
   const [form, setForm] = useState(item || {
@@ -799,9 +800,9 @@ const CharacterForm = ({ item, items, onSave, onCancel }) => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // DETAIL VIEW
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem }) => {
   const config = typeConfig[item.type];
@@ -874,14 +875,14 @@ const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem }) => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
             {item.type === 'artwork' && <>
-              <div><span className="text-gray-400 text-xs">Medium</span><p className="font-medium">{item.medium || '—'}</p></div>
-              <div><span className="text-gray-400 text-xs">Dimensions</span><p className="font-medium">{[item.height, item.width, item.depth].filter(Boolean).join(' × ') + (item.units ? ` ${item.units}` : '') || '—'}</p></div>
+              <div><span className="text-gray-400 text-xs">Medium</span><p className="font-medium">{item.medium || 'â'}</p></div>
+              <div><span className="text-gray-400 text-xs">Dimensions</span><p className="font-medium">{[item.height, item.width, item.depth].filter(Boolean).join(' Ã ') + (item.units ? ` ${item.units}` : '') || 'â'}</p></div>
               <div><span className="text-gray-400 text-xs">Status</span><p className="font-medium">{item.status}</p></div>
               <div><span className="text-gray-400 text-xs">Location</span><p className="font-medium">{item.location}</p></div>
               {item.series && <div><span className="text-gray-400 text-xs">Series</span><p className="font-medium">{item.series}</p></div>}
             </>}
             {item.type === 'book' && <>
-              <div><span className="text-gray-400 text-xs">Publisher</span><p className="font-medium">{item.publisher || '—'}</p></div>
+              <div><span className="text-gray-400 text-xs">Publisher</span><p className="font-medium">{item.publisher || 'â'}</p></div>
               <div><span className="text-gray-400 text-xs">Category</span><p className="font-medium">{item.category}</p></div>
               <div><span className="text-gray-400 text-xs">Status</span><p className="font-medium">{item.status}</p></div>
             </>}
@@ -935,9 +936,9 @@ const ItemDetail = ({ item, items, onEdit, onDelete, onBack, onViewItem }) => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // MAIN APP
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function ArtistStudioPro() {
   const [showWelcome, setShowWelcome] = useState(() => !storage.get('onboarded', false));
@@ -1107,7 +1108,7 @@ function ArtistStudioPro() {
                 </div>
                 <p className="text-gray-400 text-xs mt-0.5 flex items-center gap-2">
                   <Icons.Database /> {counts.all} items saved locally
-                  {lastSaved && <span className="text-gray-500 hidden sm:inline">• Last saved {new Date(lastSaved).toLocaleTimeString()}</span>}
+                  {lastSaved && <span className="text-gray-500 hidden sm:inline">â¢ Last saved {new Date(lastSaved).toLocaleTimeString()}</span>}
                 </p>
               </div>
             </div>
